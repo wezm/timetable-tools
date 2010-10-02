@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
 
-$LOAD_PATH.unshift File.absolute_path(File.dirname(__FILE__))
-
+require 'pathname'
 require 'csv'
-require 'station_storer'
+
+$LOAD_PATH.unshift Pathname(__FILE__).dirname.parent + 'lib'
+
+require 'timetable/station_storer'
 
 unless ARGV.size >= 2
   $stderr.puts "Usage: timetable2db timetable.csv timetable.sqlite"
