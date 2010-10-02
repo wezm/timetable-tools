@@ -38,9 +38,8 @@ co-ordinates of the text in the XML file. The histogram is then used
 to group text by row and column, which can then be used to produce
 the output CSV file.
 
-The histograms are also written out as images using [Cairo][cairo]. This was used
-during development and should be made an option but that's the way it is
-for now.
+The histograms are can also be written out as images by specifying the
+`--histograms` option.
 
     timetable timetable.xml
 
