@@ -32,11 +32,10 @@ Usage
 
 ### timetable
 
-This tool can produce CSV files from a timetable XML file. Internally
-it builds a histogram of the frequency that text appears at the
-co-ordinates of the text in the XML file. The histogram is then used
-to group text by row and column, which can then be used to produce
-the output CSV file.
+This tool can produce CSV files from a timetable XML file. Internally it builds
+a histogram of the frequency that text appears at the co-ordinates of the text
+in the XML file. The histogram is then used to group text by row and column,
+which can then be used to produce the output CSV file.
 
 The histograms are can also be written out as images by specifying the
 `--histograms` option.
@@ -57,9 +56,9 @@ The histograms are can also be written out as images by specifying the
 
 ### timetable2db
 
-This tool reads a CSV file produced by timetable, processes the data and
-stores it into and SQLite database. The resulting database contains the
-following tables:
+This tool reads a CSV file produced by timetable, processes the data and stores
+it into and SQLite database. The resulting database contains the following
+tables:
 
     +----------+      +------------+
     | stations |      | stops      |
@@ -69,8 +68,8 @@ following tables:
     +----------+      | time       |
                       +------------+
 
-The station `id` is in journey order. Such that the following will produce
-the stops for a given service number (inbound):
+The station `id` is in journey order. Such that the following will produce the
+stops for a given service number (inbound):
 
     SELECT *
     FROM stations LEFT JOIN stops
