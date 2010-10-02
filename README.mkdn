@@ -46,6 +46,16 @@ for now.
 
 [cairo]: http://cairographics.org/
 
+#### Sample Histograms
+
+##### Rows
+
+![Row Histogram](http://github.com/wezm/timetable-tools/raw/master/doc/bendigo-histogram-rows-table-1.png)
+
+##### Columns
+
+![Row Histogram](http://github.com/wezm/timetable-tools/raw/master/doc/bendigo-histogram-columns-table-1.png)
+
 ### timetable2db
 
 This tool reads a CSV file produced by timetable, processes the data and
