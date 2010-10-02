@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+$LOAD_PATH.unshift File.absolute_path(File.dirname(__FILE__))
+
 require 'csv'
 require 'station_storer'
 
