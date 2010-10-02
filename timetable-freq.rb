@@ -1,5 +1,5 @@
 require 'nokogiri'
-# require 'csv'
+require 'csv'
 require 'cairo'
 
 unless ARGV.size > 0
@@ -10,7 +10,7 @@ end
 def draw_histogram(freq, output_path)
   # Determine the dimensions of the canvas
   width = freq.keys.max + (2 * PADDING)
-  height = freq.values.map(&:count).max + (2 * PADDING)
+  height = freq.values.max + (2 * PADDING)
   
   surface = Cairo::ImageSurface.new(Cairo::Format::RGB24, width, height)
   c = Cairo::Context.new(surface)
@@ -22,9 +22,9 @@ def draw_histogram(freq, output_path)
   
   c.set_source_color(Cairo::Color::RED)
   freq.each do |x, y|
-    next unless y.count > 0
+    next unless y > 0
     c.move_to(x + PADDING, height - PADDING)
-    c.line_to(x + PADDING, height - y.count - PADDING)
+    c.line_to(x + PADDING, height - y - PADDING)
     c.stroke
   end
   
@@ -58,26 +58,27 @@ def draw_sorted_value_histogram(freq, output_path)
 end
 
 table_count = 2 # TODO: Pull form ARGV
-tables = Array.new(table_count) { |i| { :rows => {}, :columns => {} } }
-page_width = 0
-page_height = 0
+tables = Array.new(table_count) { |i| { :rows => Hash.new(0), :columns => Hash.new(0) } }
 
-File.open(ARGV[0]) do |f|
-  xml = Nokogiri::XML.parse(f)
-  page = xml.at_css("page[number='1']")
-  page_width = page['width'].to_i
-  page_height = page['height'].to_i
+f = File.open(ARGV[0])
+xml = Nokogiri::XML.parse(f)
+f.close()
+
+page_number = 1
+
+page = xml.at_css("page[number='#{page_number}']")
+page_width = page['width'].to_i
+page_height = page['height'].to_i
+
+xml.css("page[number='#{page_number}'] text").each do |text|
+  left = text['left'].to_i
+  top  = text['top'].to_i
+
+  # partition into tables
+  table = tables[top / (page_height / table_count)]
   
-  xml.css("page[number='1'] text").each do |text|
-    left = text['left'].to_i
-    top  = text['top'].to_i
-
-    # partition into tables
-    table = tables[top / (page_height / table_count)]
-    
-    table[:columns][left] = table[:columns].fetch(left, []) << text
-    table[:rows][top] = table[:rows].fetch(top, []) << text
-  end
+  table[:columns][left] += 1
+  table[:rows][top] += 1
 end
 
 PADDING = 5
@@ -95,37 +96,43 @@ def gap(freq)
   gaps
 end
 
-def group(freq, bucket_defs)
-  buckets = Array.new(bucket_defs.count) { |i| [] }
-  freq.keys.each do |key|
-    bucket = 0
-    bucket_defs.each_with_index do |boundary, i|
-      if key > boundary
-        bucket = i
-      else
-        break
-      end
+def group(key, bucket_defs)
+  bucket = nil
+  bucket_defs.each_with_index do |boundary, i|
+    if key > boundary
+      bucket = i
+    else
+      break
     end
-    buckets[bucket] << freq[key]
   end
-  
-  buckets
+  bucket
 end
 
 table_count.times do |table|
   [:rows, :columns].each do |dimension|
     draw_histogram(tables[table][dimension], "histogram-#{dimension}-table-#{table + 1}.png")
-    boundaries = gap(tables[table][dimension])
-    group(tables[table][dimension], boundaries).map(&:flatten).each do |bucket|
-      p bucket.map(&:inner_text)
+    tables[table]["#{dimension}_boundaries".to_sym] = gap(tables[table][dimension])
+    # group(tables[table][dimension], boundaries).map(&:flatten).each do |bucket|
+    #   p bucket.map(&:inner_text)
+    # end
+    # puts
+  end
+
+  timetable = Array.new(tables[table][:rows_boundaries].count) { |i| Array.new(tables[table][:columns_boundaries].count) }
+
+  # Partition the elements
+  xml.css("page[number='#{page_number}'] text").each do |text|
+    left = text['left'].to_i
+    top  = text['top'].to_i
+
+    row = group(top,  tables[table][:rows_boundaries])
+    col = group(left, tables[table][:columns_boundaries])
+    timetable[row][col] = text.inner_text.strip
+  end
+
+  CSV.open("timetable-table-#{table + 1}.tsv", "w", :col_sep => "\t") do |csv|
+    timetable.each do |row|
+      csv << row
     end
-    puts
   end
 end
-
-# Scan for GAP or more more zero points
-
-
-
-
-
