@@ -32,11 +32,11 @@ Usage
 
 ### timetable
 
-This tool can produce TSV files from a timetable XML file. Internally
+This tool can produce CSV files from a timetable XML file. Internally
 it builds a histogram of the frequency that text appears at the
 co-ordinates of the text in the XML file. The histogram is then used
 to group text by row and column, which can then be used to produce
-the output TSV file.
+the output CSV file.
 
 The histograms are also written out as images using [Cairo][cairo]. This was used
 during development and should be made an option but that's the way it is
@@ -48,7 +48,7 @@ for now.
 
 ### timetable2db
 
-This tool reads a TSV file produced by timetable, processes the data and
+This tool reads a CSV file produced by timetable, processes the data and
 stores it into and SQLite database. The resulting database contains the
 following tables:
 

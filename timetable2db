@@ -4,7 +4,7 @@ require 'csv'
 require 'station_storer'
 
 unless ARGV.size >= 2
-  $stderr.puts "Usage: timetable2db timetable.tsv timetable.sqlite"
+  $stderr.puts "Usage: timetable2db timetable.csv timetable.sqlite"
   exit 2
 end
 
@@ -23,7 +23,7 @@ def insert_station(row, storer)
 end
 
 # Read and process the timetable data
-CSV.foreach(ARGV[0], :col_sep => "\t") do |row|
+CSV.foreach(ARGV[0]) do |row|
   # Skip until service definitions
   case state
   when :skip_to_services

@@ -13,7 +13,7 @@ OptionParser.new do |o|
   o.banner = "Usage: timetable timetable.xml"
 
   o.separator ""
-  o.separator "Converts the input XML (produced by pdftohtml) into TSV."
+  o.separator "Converts the input XML (produced by pdftohtml) into CSV."
   o.separator "Output file is derived from input basename."
   o.separator ""
 
@@ -134,8 +134,8 @@ config[:tables].times do |table|
     timetable[row][col] = text.inner_text.strip
   end
 
-  tsv_file = File.basename(xml_file, File.extname(xml_file)) + "-table-#{table + 1}.tsv"
-  CSV.open(tsv_file, "w", :col_sep => "\t") do |csv|
+  csv_file = File.basename(xml_file, File.extname(xml_file)) + "-table-#{table + 1}.csv"
+  CSV.open(csv_file, "w") do |csv|
     timetable.each do |row|
       csv << row
     end
