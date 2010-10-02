@@ -1,0 +1,72 @@
+Timetable Tools
+===============
+
+This repo contains a set of tools that can extract and process structured
+timetable data from the [timetable PDFs][timetables] that [V/Line][vline]
+publishes.
+
+[timetables]: http://www.vline.com.au/index_timetables.aspx
+[vline]: http://www.vline.com.au/
+
+Dependencies
+------------
+
+To run these tools you will need ruby 1.9+ and the following gems:
+
+* cairo
+* sqlite2-ruby
+* nokogiri
+
+You will also need [pdf2html] to convert the PDFs to XML.
+
+Usage
+-----
+
+### pdf2html
+
+[pdf2html] is used to convert the timetable into XML.
+
+    pdftohtml -xml timetable.pdf timetable.xml
+
+[pdf2html]: http://pdftohtml.sourceforge.net/
+
+### timetable
+
+This tool can produce TSV files from a timetable XML file. Internally
+it builds a histogram of the frequency that text appears at the
+co-ordinates of the text in the XML file. The histogram is then used
+to group text by row and column, which can then be used to produce
+the output TSV file.
+
+The histograms are also written out as images using [Cairo][cairo]. This was used
+during development and should be made an option but that's the way it is
+for now.
+
+    timetable timetable.xml
+
+[cairo]: http://cairographics.org/
+
+### timetable2db
+
+This tool reads a TSV file produced by timetable, processes the data and
+stores it into and SQLite database. The resulting database contains the
+following tables:
+
+    +----------+      +------------+
+    | stations |      | stops      |
+    +----------+      |------------|
+    | id       |<-----| station_id |
+    | name     |      | service    |
+    +----------+      | time       |
+                      +------------+
+
+The station `id` is in journey order. Such that the following will produce
+the stops for a given service number (inbound):
+
+    SELECT *
+    FROM stations LEFT JOIN stops
+      ON (stations.id = stops.station_id)
+    WHERE service = 8000
+    ORDER BY id ASC;
+
+
