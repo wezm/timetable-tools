@@ -10,7 +10,8 @@ PADDING = 5
 config = {
   :tables => 2,
   :histograms => false,
-  :gap => 10,
+  :rowgap => 10,
+  :colgap => 20,
 }
 OptionParser.new do |o|
   o.banner = "Usage: timetable timetable.xml"
@@ -24,8 +25,12 @@ OptionParser.new do |o|
     config[:histograms] = i
   end
 
-  o.on("-g", "--gap", "The minumum gap between text to define a new row or column, default #{config[:gap]}") do |g|
-    config[:gap] = g
+  o.on("--row-gap N", Integer, "The minimum gap between text to define a new row, default #{config[:rowgap]}") do |g|
+    config[:rowgap] = g
+  end
+
+  o.on("--col-gap N", Integer, "The minimum gap between text to define a new column, default #{config[:colgap]}") do |g|
+    config[:colgap] = g
   end
 
   o.on("-t", "--tables TABLES", Integer, "The number of tables per page, default #{config[:tables]}") do |t|
@@ -93,16 +98,16 @@ xml.css("page[number='#{page_number}'] text").each do |text|
   table[:rows][top] += 1
 end
 
-def gap(freq)
-  gaps = [0]
+def boundaries(freq, width)
+  buckets = [0]
   freq.keys.sort.each_cons(2) do |left, right|
-    if right - left > config[:gap]
+    if right - left > width
       finish = left + ((right - left) / 2)
-      gaps << finish
+      buckets << finish
     end
   end
 
-  gaps
+  buckets
 end
 
 def group(key, bucket_defs)
@@ -123,7 +128,7 @@ config[:tables].times do |table|
       histogram_file = File.basename(xml_file, File.extname(xml_file)) + "-histogram-#{dimension}-table-#{table + 1}.png"
       draw_histogram(tables[table][dimension], histogram_file)
     end
-    tables[table]["#{dimension}_boundaries".to_sym] = gap(tables[table][dimension])
+    tables[table]["#{dimension}_boundaries".to_sym] = boundaries(tables[table][dimension], config["#{dimension[0,3]}gap".to_sym])
   end
 
   timetable = Array.new(tables[table][:rows_boundaries].count) { |i| Array.new(tables[table][:columns_boundaries].count) }
