@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'nokogiri'
 require 'csv'
 require 'cairo'
