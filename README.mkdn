@@ -14,7 +14,7 @@ Dependencies
 To run these tools you will need ruby 1.9+ and the following gems:
 
 * cairo
-* sqlite2-ruby
+* sqlite3-ruby
 * nokogiri
 
 You will also need [pdf2html] to convert the PDFs to XML.
