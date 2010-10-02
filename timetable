@@ -114,10 +114,6 @@ table_count.times do |table|
   [:rows, :columns].each do |dimension|
     draw_histogram(tables[table][dimension], "histogram-#{dimension}-table-#{table + 1}.png")
     tables[table]["#{dimension}_boundaries".to_sym] = gap(tables[table][dimension])
-    # group(tables[table][dimension], boundaries).map(&:flatten).each do |bucket|
-    #   p bucket.map(&:inner_text)
-    # end
-    # puts
   end
 
   timetable = Array.new(tables[table][:rows_boundaries].count) { |i| Array.new(tables[table][:columns_boundaries].count) }
