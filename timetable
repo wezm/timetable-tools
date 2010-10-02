@@ -3,25 +3,54 @@
 require 'nokogiri'
 require 'csv'
 require 'cairo'
+require 'optparse'
 
-unless ARGV.size > 0
+config = {
+  :tables => 2,
+  :histograms => false
+}
+OptionParser.new do |o|
+  o.banner = "Usage: timetable timetable.xml"
+
+  o.separator ""
+  o.separator "Converts the input XML (produced by pdftohtml) into TSV."
+  o.separator "Output file is derived from input basename."
+  o.separator ""
+
+  o.on("-i", "--histograms", "Output row and column histograms") do |i|
+    config[:histograms] = i
+  end
+
+  o.on("-t", "--tables TABLES", Integer, "The number of tables per page, default #{config[:tables]}") do |t|
+    config[:tables] = t
+  end
+
+  o.on_tail("-h", "--help", "Show this message") do
+    puts o
+    exit
+  end
+end.parse!
+
+if ARGV.size < 1
   $stderr.puts "Usage: timetable timetable.xml"
   exit 2
 end
+
+xml_file = ARGV[0]
 
 def draw_histogram(freq, output_path)
   # Determine the dimensions of the canvas
   width = freq.keys.max + (2 * PADDING)
   height = freq.values.max + (2 * PADDING)
-  
+
   surface = Cairo::ImageSurface.new(Cairo::Format::RGB24, width, height)
   c = Cairo::Context.new(surface)
-  
+
   # Draw the white background
   c.set_source_color(Cairo::Color::WHITE)
   c.rectangle(0,0,width,height)
   c.fill
-  
+
   c.set_source_color(Cairo::Color::RED)
   freq.each do |x, y|
     next unless y > 0
@@ -29,40 +58,14 @@ def draw_histogram(freq, output_path)
     c.line_to(x + PADDING, height - y - PADDING)
     c.stroke
   end
-  
+
   # Write out the image
   surface.write_to_png(output_path)
 end
 
-def draw_sorted_value_histogram(freq, output_path)
-  # Determine the dimensions of the canvas
-  width = freq.keys.max + (2 * PADDING)
-  height = freq.values.max + (2 * PADDING)
-  
-  surface = Cairo::ImageSurface.new(Cairo::Format::RGB24, width, height)
-  c = Cairo::Context.new(surface)
-  
-  # Draw the white background
-  c.set_source_color(Cairo::Color::WHITE)
-  c.rectangle(0,0,width,height)
-  c.fill
-  
-  c.set_source_color(Cairo::Color::RED)
-  freq.values.sort.reverse.each_with_index do |y, x|
-    next unless y > 0
-    c.move_to(x + PADDING, height - PADDING)
-    c.line_to(x + PADDING, height - y - PADDING)
-    c.stroke
-  end
-  
-  # Write out the image
-  surface.write_to_png(output_path)
-end
+tables = Array.new(config[:tables]) { |i| { :rows => Hash.new(0), :columns => Hash.new(0) } }
 
-table_count = 2 # TODO: Pull form ARGV
-tables = Array.new(table_count) { |i| { :rows => Hash.new(0), :columns => Hash.new(0) } }
-
-f = File.open(ARGV[0])
+f = File.open(xml_file)
 xml = Nokogiri::XML.parse(f)
 f.close()
 
@@ -77,8 +80,8 @@ xml.css("page[number='#{page_number}'] text").each do |text|
   top  = text['top'].to_i
 
   # partition into tables
-  table = tables[top / (page_height / table_count)]
-  
+  table = tables[top / (page_height / config[:tables])]
+
   table[:columns][left] += 1
   table[:rows][top] += 1
 end
@@ -94,7 +97,7 @@ def gap(freq)
       gaps << finish
     end
   end
-  
+
   gaps
 end
 
@@ -110,9 +113,12 @@ def group(key, bucket_defs)
   bucket
 end
 
-table_count.times do |table|
+config[:tables].times do |table|
   [:rows, :columns].each do |dimension|
-    draw_histogram(tables[table][dimension], "histogram-#{dimension}-table-#{table + 1}.png")
+    if config[:histograms]
+      histogram_file = File.basename(xml_file, File.extname(xml_file)) + "-histogram-#{dimension}-table-#{table + 1}.png"
+      draw_histogram(tables[table][dimension], histogram_file)
+    end
     tables[table]["#{dimension}_boundaries".to_sym] = gap(tables[table][dimension])
   end
 
@@ -128,7 +134,8 @@ table_count.times do |table|
     timetable[row][col] = text.inner_text.strip
   end
 
-  CSV.open("timetable-table-#{table + 1}.tsv", "w", :col_sep => "\t") do |csv|
+  tsv_file = File.basename(xml_file, File.extname(xml_file)) + "-table-#{table + 1}.tsv"
+  CSV.open(tsv_file, "w", :col_sep => "\t") do |csv|
     timetable.each do |row|
       csv << row
     end
