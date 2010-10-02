@@ -5,9 +5,12 @@ require 'csv'
 require 'cairo'
 require 'optparse'
 
+PADDING = 5
+
 config = {
   :tables => 2,
-  :histograms => false
+  :histograms => false,
+  :gap => 10,
 }
 OptionParser.new do |o|
   o.banner = "Usage: timetable timetable.xml"
@@ -19,6 +22,10 @@ OptionParser.new do |o|
 
   o.on("-i", "--histograms", "Output row and column histograms") do |i|
     config[:histograms] = i
+  end
+
+  o.on("-g", "--gap", "The minumum gap between text to define a new row or column, default #{config[:gap]}") do |g|
+    config[:gap] = g
   end
 
   o.on("-t", "--tables TABLES", Integer, "The number of tables per page, default #{config[:tables]}") do |t|
@@ -86,13 +93,10 @@ xml.css("page[number='#{page_number}'] text").each do |text|
   table[:rows][top] += 1
 end
 
-PADDING = 5
-GAP = 10
-
 def gap(freq)
   gaps = [0]
   freq.keys.sort.each_cons(2) do |left, right|
-    if right - left > GAP
+    if right - left > config[:gap]
       finish = left + ((right - left) / 2)
       gaps << finish
     end
