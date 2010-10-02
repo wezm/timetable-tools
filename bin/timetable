@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'pathname'
+
+$LOAD_PATH.unshift Pathname(__FILE__).dirname.parent + 'lib'
+
+require 'timetable/processor'
+
+options = {}
+output = '.'
+OptionParser.new do |o|
+  o.banner = "Usage: timetable timetable.xml"
+
+  o.separator ""
+  o.separator "Converts the input XML (produced by pdftohtml) into CSV."
+  o.separator "Output file is derived from input basename."
+  o.separator ""
+
+  o.on("-i", "--histograms", "Output row and column histograms") do |i|
+    options[:histograms] = i
+  end
+
+  o.on("--row-gap N", Integer, "The minimum gap between text to define a new row, default #{options[:rowgap]}") do |g|
+    options[:row_height] = g
+  end
+
+  o.on("--col-gap N", Integer, "The minimum gap between text to define a new column, default #{options[:colgap]}") do |g|
+    options[:column_width] = g
+  end
+
+  o.on("-t", "--tables TABLES", Integer, "The number of tables per page, default #{options[:tables]}") do |t|
+    options[:tables] = t
+  end
+
+  o.on("-o", "--output DIR", "Output directory, default is pwd") do |outdir|
+    output = outdir
+  end
+
+  o.on_tail("-h", "--help", "Show this message") do
+    puts o
+    exit
+  end
+end.parse!
+
+if ARGV.size < 1
+  $stderr.puts "Usage: timetable timetable.xml"
+  exit 2
+end
+
+processor = Timetable::Processor.new(ARGV[0], options)
+processor.write(output)
