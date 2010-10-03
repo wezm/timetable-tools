@@ -57,21 +57,16 @@ This tool reads a CSV file produced by timetable, processes the data and stores
 it into and SQLite database. The resulting database contains the following
 tables:
 
-    +----------+      +------------+
-    | stations |      | stops      |
-    +----------+      |------------|
-    | id       |<-----| station_id |
-    | name     |      | service    |
-    +----------+      | time       |
+    +----------+      +------------+      +----------+     +--------------+
+    | stations |      | stops      |      | services |     | service_days |
+    +----------+      |------------|      +----------+     +--------------+
+    | id       |<-----| station_id |   +--| number   |<----| service      |
+    | name     |      | service    |<--+  | inbound  |     | day          |
+    +----------+      | time       |      +----------+     +--------------+
                       +------------+
 
-The station `id` is in journey order. Such that the following will produce the
-stops for a given service number (inbound):
+Some notes:
 
-    SELECT *
-    FROM stations LEFT JOIN stops
-      ON (stations.id = stops.station_id)
-    WHERE service = 8000
-    ORDER BY id ASC;
-
-
+* services.inbound is boolean (0 or 1) indicating if the service is heading into the city.
+* service\_days.days is a number for the day of the week the service runs. Sunday is 1,
+  Monday 2, etc.
