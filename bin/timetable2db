@@ -90,14 +90,9 @@ ARGV.each do |csv_path|
             storer.add_service idx, service.to_i
           end
         end
-        state = :skip_to_departure
+        state = :read_stations
       end
-    when :skip_to_departure
-      if row[1] == 'dep'
-        state = :read_station
-        insert_station(row, storer)
-      end
-    when :read_station
+    when :read_stations
       insert_station(row, storer) if row[0]
     else
       puts "Unknown state: #{state}"
