@@ -16,8 +16,6 @@ module Timetable
       from = DAYS.index(from[0,3].upcase) + 1
       to = DAYS.index(to[0,3].upcase) + 1 if(to)
 
-      raise RuntimeError.new("Invalid day spec: #{text}") unless from
-
       to ? (from..to) : [from]
     end
 

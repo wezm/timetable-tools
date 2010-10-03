@@ -40,5 +40,10 @@ describe Timetable::DayParser do
     it "should return [1] for Sun" do
       Timetable::DayParser.parse("Sun").should == [1]
     end
+
+    it "should raise an error if the day can't be found" do
+      lambda { Timetable::DayParser.parse("Asdf") }.should raise_error
+      lambda { Timetable::DayParser.parse("Monday - ASDF") }.should raise_error
+    end
   end
 end
