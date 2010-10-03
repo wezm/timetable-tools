@@ -2,7 +2,7 @@ module Timetable
   
   class Partitioner
     
-    def initialize(boundaries)
+    def initialize(boundaries = [0])
       @boundaries = boundaries
     end
     

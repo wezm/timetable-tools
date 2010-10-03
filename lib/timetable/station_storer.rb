@@ -1,17 +1,30 @@
 require 'sqlite3'
+require 'timetable/partitioner'
 
 class StationStorer
-  
+
   def initialize(db_path)
     @db = SQLite3::Database.new(db_path)
     @services = {}
+    @days = []
+    @day_partitioner = Timetable::Partitioner.new
 
     create_and_clear_tables
   end
   attr_reader :db
+  attr_accessor :direction
 
   def add_service(index, service)
-    puts "add service: #{index} => #{service}"
+    puts "add service: #{index} => #{service} (#{direction})"
+
+    @insert_service ||= db.prepare "INSERT INTO services (number, inbound) VALUES (?,?)"
+    @insert_service.execute(service, direction == 'in' ? 1 : 0)
+
+    @insert_service_day ||= db.prepare "INSERT INTO service_days (service, day) VALUES (?,?)"
+    @days[@day_partitioner.place(index) - 1].each do |day|
+      @insert_service_day.execute(service, day)
+    end
+
     @services[index] = service
   end
 
@@ -29,7 +42,13 @@ class StationStorer
     @insert_stop ||= db.prepare "INSERT OR REPLACE INTO stops VALUES (?, ?, ?)"
     @insert_stop.execute(station_id, @services[details[:service]], details[:time])
   end
-  
+
+  def add_days(index, days)
+    puts "add days: #{index} => #{days.inspect}"
+    @days << days
+    @day_partitioner.boundaries << index - 1
+  end
+
 protected
 
   def id_of_station(station)
@@ -49,15 +68,28 @@ protected
         id integer NOT NULL PRIMARY KEY,
         name varchar(255) UNIQUE NOT NULL
       );
-    
+
+      CREATE TABLE IF NOT EXISTS services (
+        number integer NOT NULL PRIMARY KEY,
+        inbound boolean NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS service_days (
+        service integer NOT NULL,
+        day integer NOT NULL,
+        PRIMARY KEY(service, day)
+      );
+
       CREATE TABLE IF NOT EXISTS stops (
         station_id integer NOT NULL,
         service integer NOT NULL,
         time character(5),
         PRIMARY KEY(station_id, service)
       );
-      
+
       DELETE FROM stations;
+      DELETE FROM services;
+      DELETE FROM service_days;
       DELETE FROM stops;
     SQL
   end
