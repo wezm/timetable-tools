@@ -7,7 +7,12 @@ $LOAD_PATH.unshift Pathname(__FILE__).dirname.parent + 'lib'
 
 require 'timetable/processor'
 
-options = {}
+options = {
+  :boundary => 650,
+  :histograms => false,
+  :row_height => 10,
+  :column_width => 20,
+}
 output = '.'
 OptionParser.new do |o|
   o.banner = "Usage: timetable timetable.xml"
@@ -21,16 +26,16 @@ OptionParser.new do |o|
     options[:histograms] = i
   end
 
-  o.on("--row-gap N", Integer, "The minimum gap between text to define a new row, default #{options[:rowgap]}") do |g|
+  o.on("--row-gap N", Integer, "The minimum gap between text to define a new row, default #{options[:row_height]}") do |g|
     options[:row_height] = g
   end
 
-  o.on("--col-gap N", Integer, "The minimum gap between text to define a new column, default #{options[:colgap]}") do |g|
+  o.on("--col-gap N", Integer, "The minimum gap between text to define a new column, default #{options[:column_width]}") do |g|
     options[:column_width] = g
   end
 
-  o.on("-t", "--tables TABLES", Integer, "The number of tables per page, default #{options[:tables]}") do |t|
-    options[:tables] = t
+  o.on("--table-boundary BOUNDARY", Integer, "Split point between the 1st and 2nd table, default #{options[:boundary]}") do |b|
+    options[:boundary] = b
   end
 
   o.on("-o", "--output DIR", "Output directory, default is pwd") do |outdir|

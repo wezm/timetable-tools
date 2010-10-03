@@ -7,12 +7,7 @@ module Timetable
   class Processor
 
     def initialize(xml_path, options)
-      @options = {
-        :tables => 2,
-        :histograms => false,
-        :row_height => 10,
-        :column_width => 20,
-      }.merge(options)
+      @options = options
       @xml_path = xml_path
 
       f = File.open(@xml_path)
@@ -28,7 +23,7 @@ module Timetable
       page_idx = 0
       xml.css("page").each do |xml_page|
         page_idx += 1
-        page = Page.new(xml_page, options[:tables], options[:row_height], options[:column_width])
+        page = Page.new(xml_page, options[:boundary], options[:row_height], options[:column_width])
         
         page.tables.each_with_index do |table, idx|
           write_csv(table, File.join(output_path, basename + "-page-#{page_idx}-table-#{idx + 1}.csv"))
