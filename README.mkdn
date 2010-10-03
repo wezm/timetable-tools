@@ -60,10 +60,10 @@ tables:
     +----------+      +------------+      +----------+     +--------------+
     | stations |      | stops      |      | services |     | service_days |
     +----------+      |------------|      +----------+     +--------------+
-    | id       |<-----| station_id |   +--| number   |<----| service      |
-    | name     |      | service    |<--+  | inbound  |     | day          |
-    +----------+      | time       |      +----------+     +--------------+
-                      +------------+
+    | id       |<-----| station_id |   +--| id       |<----| service_id   |
+    | name     |      | service_id |<--+  | number   |     | day          |
+    +----------+      | time       |      | inbound  |     +--------------+
+                      +------------+      +----------+
 
 Some notes:
 
