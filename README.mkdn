@@ -70,3 +70,34 @@ Some notes:
 * services.inbound is boolean (0 or 1) indicating if the service is heading into the city.
 * service\_days.days is a number for the day of the week the service runs. Sunday is 1,
   Monday 2, etc.
+
+#### Sample Query
+
+Times of trains departing from Macedon towards the city:
+
+    SELECT services.number, stops.time
+    FROM service_days, services, stops, stations
+    WHERE day = 2
+    AND services.id = service_days.service_id
+    AND services.inbound = 1
+    AND stations.name = "Macedon"
+    AND stops.station_id = stations.id
+    AND stops.service_id = services.id;
+
+gives:
+
+    number      time
+    ----------  ----------
+    8000        05:32:00
+    8002        06:10:00
+    8010        07:08:00
+    8014        07:26:00
+    8016        07:38:00
+    8024        09:45:00
+    8028        11:23:00
+    8032        13:23:00
+    8036        15:23:00
+    8044        17:21:00
+    8048        18:18:00
+    8052        20:10:00
+    8054        21:37:00
