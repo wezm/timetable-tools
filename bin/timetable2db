@@ -48,47 +48,60 @@ def insert_station(row, storer)
 end
 
 storer = StationStorer.new(ARGV.pop)
-state = :determine_direction
+storer.create_or_clear_tables!
 
-# Read and process the timetable data
-CSV.foreach(ARGV[0], :encoding => "utf-8") do |row|
-  # Skip until service definitions
-  case state
-  when :determine_direction
-    from_to = row.compact.find { |col| col.include? options[:city] }
-    if from_to
-      from, to = from_to.split(/\s*­\s*/)
-      storer.direction = from == options[:city] ? 'out' : 'in'
-      state = :determine_days
-    end
-  when :determine_days
-    if Timetable::DayParser.match(row.compact.first)
-      row.each_with_index do |cell, idx|
-        unless cell.nil?
-          days = Timetable::DayParser.parse(cell)
-          storer.add_days idx, days
-        end
-      end
-      state = :skip_to_services
-    end
-  when :skip_to_services
-    if row[0] == "Service No."
-      row.each_with_index do |service, idx|
-        if service =~ /^\d+$/
-          storer.add_service idx, service.to_i
-        end
-      end
-      state = :skip_to_departure
-    end
-  when :skip_to_departure
-    if row[1] == 'dep'
-      state = :read_station
-      insert_station(row, storer)
-    end
-  when :read_station
-    insert_station(row, storer) if row[0]
+ARGV.each do |csv_path|
+  # Read and process the timetable data
+  puts csv_path
+  storer.reset!
+
+  # HACK: Handle the fact that the second table doesn't have the
+  # direction info.
+  if csv_path.include? "table-2"
+    state = :determine_days
   else
-    puts "Unknown state: #{state}"
-    exit 1
+    state = :determine_direction
+  end
+  
+  CSV.foreach(csv_path, :encoding => "utf-8") do |row|
+    # Skip until service definitions
+    case state
+    when :determine_direction
+      from_to = row.compact.find { |col| col.include? options[:city] }
+      if from_to
+        from, to = from_to.split(/\s*­\s*/)
+        storer.direction = from == options[:city] ? 'out' : 'in'
+        state = :determine_days
+      end
+    when :determine_days
+      if Timetable::DayParser.match(row.compact.first)
+        row.each_with_index do |cell, idx|
+          unless cell.nil?
+            days = Timetable::DayParser.parse(cell)
+            storer.add_days idx, days
+          end
+        end
+        state = :skip_to_services
+      end
+    when :skip_to_services
+      if row[0] == "Service No."
+        row.each_with_index do |service, idx|
+          if service =~ /^\d+$/
+            storer.add_service idx, service.to_i
+          end
+        end
+        state = :skip_to_departure
+      end
+    when :skip_to_departure
+      if row[1] == 'dep'
+        state = :read_station
+        insert_station(row, storer)
+      end
+    when :read_station
+      insert_station(row, storer) if row[0]
+    else
+      puts "Unknown state: #{state}"
+      exit 1
+    end
   end
 end
