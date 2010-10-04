@@ -73,7 +73,7 @@ Some notes:
 
 #### Sample Query
 
-Times of trains departing from Macedon towards the city:
+Times of trains departing from Macedon towards the city on Monday:
 
     SELECT services.number, stops.time
     FROM service_days, services, stops, stations
@@ -84,20 +84,17 @@ Times of trains departing from Macedon towards the city:
     AND stops.station_id = stations.id
     AND stops.service_id = services.id;
 
-gives:
+Next train departing North Melbourne that stops at Macedon:
 
-    number      time
-    ----------  ----------
-    8000        05:32:00
-    8002        06:10:00
-    8010        07:08:00
-    8014        07:26:00
-    8016        07:38:00
-    8024        09:45:00
-    8028        11:23:00
-    8032        13:23:00
-    8036        15:23:00
-    8044        17:21:00
-    8048        18:18:00
-    8052        20:10:00
-    8054        21:37:00
+    SELECT *
+    FROM stops AS departing, stops AS arriving, services, service_days
+    WHERE departing.service_id = arriving.service_id
+    AND departing.station_id = (SELECT id from stations where name = "North Melbourne")
+    AND arriving.station_id = (SELECT id from stations where name = "Macedon")
+    AND departing.service_id = services.id
+    AND services.inbound = 0
+    AND service_days.service_id = services.id
+    AND service_days.day = strftime("%w", 'now', 'localtime') + 1
+    AND time(departing.time) > time('now', 'localtime')
+    ORDER BY time(departing.time)
+    LIMIT 1;
