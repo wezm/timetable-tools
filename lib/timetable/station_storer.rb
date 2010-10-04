@@ -1,4 +1,8 @@
 require 'sqlite3'
+require 'json'
+require 'cgi'
+require 'net/http'
+
 require 'timetable/partitioner'
 
 class StationStorer
@@ -57,7 +61,9 @@ class StationStorer
     db.execute_batch <<-SQL
       CREATE TABLE IF NOT EXISTS stations (
         id integer NOT NULL PRIMARY KEY,
-        name varchar(255) UNIQUE NOT NULL
+        name varchar(255) UNIQUE NOT NULL,
+        latitude double NOT NULL,
+        longitude double NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS services (
@@ -92,13 +98,28 @@ protected
     db.get_first_value("SELECT id FROM stations WHERE name = ?", station)
   end
 
-  
+  def geocode_station(station)
+    address = "#{station} Station, VIC, Australia"
+    response = Net::HTTP.get_response(
+      URI.parse("http://maps.googleapis.com/maps/api/geocode/json?address=#{CGI.escape(address)}&sensor=false")
+    )
+    data = JSON.parse(response.body)
+
+    lat, lng = nil
+    if data["status"] == "OK"
+      lat = data["results"].first["geometry"]["location"]["lat"]
+      lng = data["results"].first["geometry"]["location"]["lng"]
+    end
+
+    return [lat, lng]
+  end
 
   def add_station(station)
     puts "add station: #{station}"
-    @insert_station ||= db.prepare "INSERT INTO stations (name) VALUES (?)"
-    @insert_station.execute(station)
-    id_of_station(station)
+    latitude, longitude = geocode_station(station)
+    @insert_station ||= db.prepare "INSERT INTO stations (name, latitude, longitude) VALUES (?,?,?)"
+    @insert_station.execute(station, latitude, longitude)
+    db.last_insert_row_id # Return the id of the inserted station
   end
 
 end
