@@ -11,7 +11,8 @@ require 'timetable/station_storer'
 require 'timetable/day_parser'
 
 options = {
-  :city => "Melbourne"
+  :city => "Melbourne",
+  :line => "Bendigo"
 }
 output = '.'
 OptionParser.new do |o|
@@ -47,7 +48,7 @@ def insert_station(row, storer)
   end
 end
 
-storer = StationStorer.new(ARGV.pop)
+storer = StationStorer.new(ARGV.pop, options[:line])
 storer.create_or_clear_tables!
 
 ARGV.each do |csv_path|

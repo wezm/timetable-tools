@@ -7,10 +7,11 @@ require 'timetable/partitioner'
 
 class StationStorer
 
-  def initialize(db_path)
+  def initialize(db_path, line)
     @db = SQLite3::Database.new(db_path)
+    @line = line
   end
-  attr_reader :db
+  attr_reader :db, :line
   attr_accessor :direction
 
   def reset!
@@ -59,8 +60,14 @@ class StationStorer
 
   def create_or_clear_tables!
     db.execute_batch <<-SQL
+      CREATE TABLE IF NOT EXISTS lines (
+        id integer NOT NULL PRIMARY KEY,
+        name varchar(255) UNIQUE NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS stations (
         id integer NOT NULL PRIMARY KEY,
+        line_id integer NOT NULL,
         name varchar(255) UNIQUE NOT NULL,
         latitude double NOT NULL,
         longitude double NOT NULL
@@ -85,10 +92,11 @@ class StationStorer
         PRIMARY KEY(station_id, service_id)
       );
 
-      DELETE FROM stations;
-      DELETE FROM services;
       DELETE FROM service_days;
       DELETE FROM stops;
+      DELETE FROM services;
+      DELETE FROM stations;
+      DELETE FROM lines;
     SQL
   end
 
@@ -96,6 +104,18 @@ protected
 
   def id_of_station(station)
     db.get_first_value("SELECT id FROM stations WHERE name = ?", station)
+  end
+
+  def id_of_line
+    @id_of_line ||= db.get_first_value("SELECT id FROM lines WHERE name = ?", @line)
+    unless @id_of_line
+      puts "add line: #{@line}"
+      insert_line = db.prepare "INSERT INTO lines (name) VALUES (?)"
+      insert_line.execute @line
+      @id_of_line = db.last_insert_row_id
+      # insert_line.finish
+    end
+    @id_of_line
   end
 
   def geocode_station(station)
