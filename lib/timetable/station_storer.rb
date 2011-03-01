@@ -70,7 +70,9 @@ class StationStorer
         line_id integer NOT NULL,
         name varchar(255) UNIQUE NOT NULL,
         latitude double NOT NULL,
-        longitude double NOT NULL
+        longitude double NOT NULL,
+        address varchar(255) NOT NULL,
+        phone varchar(12) NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS services (
@@ -121,24 +123,33 @@ protected
   def geocode_station(station)
     address = "#{station} Station, VIC, Australia"
     response = Net::HTTP.get_response(
-      URI.parse("http://maps.googleapis.com/maps/api/geocode/json?address=#{CGI.escape(address)}&sensor=false")
+      URI.parse("http://maps.googleapis.com/maps/api/geocode/json?address=#{CGI.escape(address)}&sensor=false&region=au")
     )
     data = JSON.parse(response.body)
 
-    lat, lng = nil
+    lat, lng, address = nil
     if data["status"] == "OK"
-      lat = data["results"].first["geometry"]["location"]["lat"]
-      lng = data["results"].first["geometry"]["location"]["lng"]
+      result = data["results"].first
+      lat = result["geometry"]["location"]["lat"]
+      lng = result["geometry"]["location"]["lng"]
+      address = result["formatted_address"]
     end
 
-    return [lat, lng]
+    return [lat, lng, address]
   end
 
   def add_station(station)
     puts "add station: #{station}"
-    latitude, longitude = geocode_station(station)
-    @insert_station ||= db.prepare "INSERT INTO stations (name, latitude, longitude) VALUES (?,?,?)"
-    @insert_station.execute(station, latitude, longitude)
+    begin
+      latitude, longitude, address = geocode_station(station)
+    rescue => e
+      puts "Error geocoding #{station}: #{e}"
+      latitude = 144
+      longitude = 35
+      address = "N/A"
+    end
+    @insert_station ||= db.prepare "INSERT INTO stations (line_id, name, latitude, longitude, address, phone) VALUES (?,?,?,?,?,?)"
+    @insert_station.execute(id_of_line, station, latitude, longitude, address, '119')
     db.last_insert_row_id # Return the id of the inserted station
   end
 
