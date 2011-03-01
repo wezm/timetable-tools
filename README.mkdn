@@ -8,27 +8,28 @@ publishes.
 [timetables]: http://www.vline.com.au/index_timetables.aspx
 [vline]: http://www.vline.com.au/
 
-Dependencies
+Installation
 ------------
 
-To run these tools you will need ruby 1.9+ and the following gems:
+To run these tools you will need ruby 1.9+ and [bundler][bundler] installed.
+bundler will ensure you have the necessary Ruby dependencies installed:
 
-* cairo
-* sqlite3-ruby
-* nokogiri
+    bundle install
+
+[bundler]: http://gembundler.com/
 
 You will also need [pdf2html] to convert the PDFs to XML.
+
+[pdf2html]: http://pdftohtml.sourceforge.net/
 
 Usage
 -----
 
 ### pdf2html
 
-[pdf2html] is used to convert the timetable into XML.
+[pdf2html] is used to convert the timetable PDF into XML.
 
     pdftohtml -xml timetable.pdf timetable.xml
-
-[pdf2html]: http://pdftohtml.sourceforge.net/
 
 ### timetable
 
@@ -39,8 +40,6 @@ which can then be used to produce the output CSV file.
 
     timetable timetable.xml
 
-[cairo]: http://cairographics.org/
-
 #### Sample Histograms
 
 ##### Rows
@@ -49,7 +48,7 @@ which can then be used to produce the output CSV file.
 
 ##### Columns
 
-![Row Histogram](http://github.com/wezm/timetable-tools/raw/master/doc/bendigo-histogram-columns-table-1.png)
+![Column Histogram](http://github.com/wezm/timetable-tools/raw/master/doc/bendigo-histogram-columns-table-1.png)
 
 ### timetable2db
 
@@ -59,7 +58,7 @@ tables:
 
     +----------+      +------------+      +----------+     +--------------+
     | stations |      | stops      |      | services |     | service_days |
-    +----------+      |------------|      +----------+     +--------------+
+    |----------|      |------------|      |----------|     |--------------|
     | id       |<-----| station_id |   +--| id       |<----| service_id   |
     | name     |      | service_id |<--+  | number   |     | day          |
     +----------+      | time       |      | inbound  |     +--------------+
@@ -98,3 +97,12 @@ Next train departing North Melbourne that stops at Macedon:
     AND time(departing.time) > time('now', 'localtime')
     ORDER BY time(departing.time)
     LIMIT 1;
+
+Stops after the given stop for the given service:
+
+    SELECT *
+    FROM stops
+    WHERE service_id = 74
+    ORDER BY time;
+    
+    
