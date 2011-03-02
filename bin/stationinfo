@@ -1,0 +1,163 @@
+#!/usr/bin/env node
+
+var http = require('http')
+   , qs = require('querystring')
+   , fs = require('fs')
+   , URL = require('url')
+   , jsdom = require('jsdom')
+   , _ = require('underscore');
+
+function generateXml(body) {
+  var w = new genx.Writer()
+    , window = jsdom(body, null, {
+      features: {
+        FetchExternalResources: false,
+        MutationEvents: false
+      }}).createWindow()
+    , $ = require('jquery').create(window);
+
+  w.on('data', function(data) {
+    process.stdout.write(data);
+  });
+
+}
+
+function suburbStops(suburbId, callback) {
+  var url = URL.parse("http://www.viclink.com.au/AffectedLines/getSuburbLines?SuburbID="+suburbId+"&StopModeID=99");
+  // console.log("Requesting " + "http://www.viclink.com.au/AffectedLines/getSuburbLines?SuburbID="+suburbId+"&StopModeID=99");
+
+  // console.log(suburbId);
+  if (parseInt(suburbId) < 0) {
+    // Ignore "Select suburb" option
+    return callback(undefined, {});
+  }
+
+  options = {
+    host: url.hostname,
+    port: 80,
+    path: url.pathname + url.search
+  };
+
+  http.get(options, function(response) {
+    if (response.statusCode != 200) {
+      return callback(new Error("Bad response: " + response.statusCode));
+    }
+
+    var body = '';
+    response.setEncoding('utf8');
+    response.on('data', function (chunk) {
+      body += chunk;
+    });
+
+    response.on('end', function() {
+      // Process the body
+      jsdom.env(body, ['/Users/wmoore/Source/GitHub/Timetable/jquery-1.5.min.js'], function(err, window) {
+        if (err) {
+          console.log(err);
+          process.exit(1);
+        }
+        var $ = window.$;
+
+        var stops = {};
+        $('option').each(function () {
+          if (parseInt(this.value) > 0) {
+            stops[$(this).text()] = this.value;
+          }
+        });
+
+        callback(undefined, stops);
+      });
+    });
+  });
+}
+
+function processSuburbs(suburbs, callback) {
+  var allStops = {};
+  var suburbNames = Object.keys(suburbs);
+
+  var processSuburb = function() {
+    var suburb = suburbNames.shift();
+    if (suburb) {
+      console.log(suburb);
+      suburbStops(suburbs[suburb], function(err, stops) {
+        if (err) {
+          console.log(err)
+          process.exit(1);
+        }
+
+        // Do something with stops
+        // console.log(stops);
+        _.extend(allStops, stops);
+
+        // Schedule the next one
+        process.nextTick(processSuburb);
+      });
+    }
+    else {
+      callback(allStops);
+    }
+  };
+
+  processSuburb();
+}
+
+/*
+   For each of the suburbs
+   Request http://www.viclink.com.au/AffectedLines/getSuburbLines?SuburbID=SUBURB_ID&StopModeID=99
+   This returns options:
+   <option value="-1">Select Stop</option><option value="17234">Benalla (Benalla Railway Station / Mackellar Street)</option><option value="20295">Benalla Railway Station (Nixon Street / Mackellar Street)</option>
+
+   From these we get the list of stops and their ids.
+
+   Given an ID, the stop information can be retrieved at:
+   http://www.viclink.com.au/stop/view/:stop_id
+*/
+
+// Load the suburbs
+if (process.argv.length < 3) {
+  console.log("Usage: stationinfo suburbs.json");
+  process.exit(2);
+}
+
+fs.readFile(process.argv[2], function(err, data) {
+  if (err) {
+    console.log("Error reading suburbs: " + err);
+    process.exit(1);
+  }
+  //console.log(data.toString('utf8'));
+
+  var suburbs = JSON.parse(data.toString('utf8'));
+  processSuburbs(suburbs, function(stops) {
+    console.log(stops);
+  });
+});
+
+// var viclink = http.createClient(80, 'www.google.com');
+// var query = qs.stringify({
+//   q: "node.js xml",
+//   ie: 'UTF-8',
+//   oe: 'UTF-8'
+// });
+// var request = google.request(
+//   'GET',
+//   '/search?' + query,
+//   {'host': 'www.google.com'}
+// );
+// request.end();
+
+// request.on('response', function (response) {
+//   if (response.statusCode != 200) {
+//     console.log("Error: Unexpected response code " + response.statusCode);
+//     return; // Would be nice to abort the request here
+//   }
+
+//   var body = '';
+//   response.setEncoding('utf8');
+//   response.on('data', function (chunk) {
+//     body += chunk;
+//   });
+
+//   response.on('end', function() {
+//     generateXml(body);
+//   });
+// });
