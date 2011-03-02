@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+require 'json'
+
+if ARGV.length < 2
+  puts "Usage: stoploader suburbs.json output_dir"
+  exit 2
+end
+
+suburbs = JSON.parse File.read(ARGV[0])
+suburbs.each do |suburb, id|
+  puts suburb
+  url = "http://www.viclink.com.au/AffectedLines/getSuburbLines?SuburbID=#{id}&StopModeID=99"
+  system 'curl', '--silent', '--create-dirs', '--output', File.join(ARGV[1], suburb) + ".html", url
+end
