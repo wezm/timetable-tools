@@ -69,9 +69,11 @@ class StationStorer
         id integer NOT NULL PRIMARY KEY,
         line_id integer NOT NULL,
         name varchar(255) UNIQUE NOT NULL,
-        latitude double NOT NULL,
-        longitude double NOT NULL,
-        address varchar(255) NOT NULL,
+        latitude double,
+        longitude double,
+        address varchar(255),
+        city varchar(255),
+        postcode varchar(255),
         phone varchar(12)
       );
 
@@ -140,16 +142,8 @@ protected
 
   def add_station(station)
     puts "add station: #{station}"
-    begin
-      latitude, longitude, address = geocode_station(station)
-    rescue => e
-      puts "Error geocoding #{station}: #{e}"
-      latitude = 144
-      longitude = 35
-      address = "N/A"
-    end
-    @insert_station ||= db.prepare "INSERT INTO stations (line_id, name, latitude, longitude, address) VALUES (?,?,?,?,?)"
-    @insert_station.execute(id_of_line, station, latitude, longitude, address)
+    @insert_station ||= db.prepare "INSERT INTO stations (line_id, name) VALUES (?,?)"
+    @insert_station.execute(id_of_line, station)
     db.last_insert_row_id # Return the id of the inserted station
   end
 
