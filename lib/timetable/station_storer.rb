@@ -72,7 +72,7 @@ class StationStorer
         latitude double NOT NULL,
         longitude double NOT NULL,
         address varchar(255) NOT NULL,
-        phone varchar(12) NOT NULL
+        phone varchar(12)
       );
 
       CREATE TABLE IF NOT EXISTS services (
@@ -148,8 +148,8 @@ protected
       longitude = 35
       address = "N/A"
     end
-    @insert_station ||= db.prepare "INSERT INTO stations (line_id, name, latitude, longitude, address, phone) VALUES (?,?,?,?,?,?)"
-    @insert_station.execute(id_of_line, station, latitude, longitude, address, '119')
+    @insert_station ||= db.prepare "INSERT INTO stations (line_id, name, latitude, longitude, address) VALUES (?,?,?,?,?)"
+    @insert_station.execute(id_of_line, station, latitude, longitude, address)
     db.last_insert_row_id # Return the id of the inserted station
   end
 
