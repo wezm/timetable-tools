@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+require 'nokogiri'
+require 'fileutils'
+
+if ARGV.length < 2
+  puts "Usage: getstationinfo stopdir stationdir"
+  exit 2
+end
+
+Dir[File.join(ARGV[0], "*.html")].each do |htmlfile|
+  suburb = File.basename htmlfile, ".html"
+  html = Nokogiri::HTML.fragment File.read(htmlfile, :encoding => "ISO-8859-1")
+  html.css("option").each do |option|
+    if option.text =~ /^([^()]+) Railway Station/
+      station = $1
+      # option = html.at_xpath(%{option[starts-with(., "#{suburb} Railway Station")]})
+      print station
+      stop_id = option['value']
+
+      print " fetching"
+      url = "http://www.viclink.com.au/stop/view/#{stop_id}"
+      system 'curl', '--silent', '--create-dirs', '--output', File.join(ARGV[1], station) + ".html", url
+      puts " done"
+    end
+  end
+end
