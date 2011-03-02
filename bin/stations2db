@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+
+# Loads station info into the db. Assumes the db was created by timetable2db
+
+require 'nokogiri'
+require 'sqlite3'
+
+if ARGV.length < 2
+  puts "Usage station2db stationsdir db.sqlite"
+  exit 2
+end
+
+stationsdir = ARGV[0]
+db = SQLite3::Database.new(ARGV[1])
+sql = <<-SQL
+  UPDATE stations SET
+    address = ?,
+    city = ?,
+    postcode = ?,
+    phone = ?,
+    longitude = ?,
+    latitude = ?
+  WHERE id = ?
+SQL
+
+db.prepare sql do |stmt|
+  # Loop over each of the stations in the db and attempt to populate their info
+  db.execute("SELECT id, name FROM stations") do |id, station|
+    stationfile = File.join(stationsdir, station + ".html")
+    unless File.exist? stationfile
+      puts "Error: Unable to find station info for #{station}"
+      exit 1
+    end
+
+    puts station
+    html = Nokogiri::HTML(File.read(stationfile, :encoding => "ISO-8859-1"))
+    # station = html.at_css(".vcard .org").text
+
+    # Extract the relevant info
+    phone = html.at_css(".vcard .tel").text
+    address = html.at_css(".vcard .address .street-address").text
+    city = html.at_css(".vcard .address .locality").text
+    postcode = html.at_css(".vcard .address .postal-code").text
+    latitude = html.at_css(".vcard .geo .latitude").text
+    longitude = html.at_css(".vcard .geo .longitude").text
+
+    stmt.execute(address, city, postcode, phone, latitude, longitude, id)
+  end
+end
