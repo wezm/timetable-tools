@@ -29,7 +29,7 @@ Usage
 
 [pdf2html] is used to convert the timetable PDF into XML.
 
-    pdftohtml -xml timetable.pdf timetable.xml
+    pdftohtml -xml timetable.pdf timetable
 
 ### timetable
 
@@ -53,16 +53,35 @@ which can then be used to produce the output CSV file.
 ### timetable2db
 
 This tool reads a CSV file produced by timetable, processes the data and stores
-it into and SQLite database. The resulting database contains the following
-tables:
+it into and SQLite database.
 
-    +----------+      +------------+      +----------+     +--------------+
-    | stations |      | stops      |      | services |     | service_days |
-    |----------|      |------------|      |----------|     |--------------|
-    | id       |<-----| station_id |   +--| id       |<----| service_id   |
-    | name     |      | service_id |<--+  | number   |     | day          |
-    +----------+      | time       |      | inbound  |     +--------------+
-                      +------------+      +----------+
+    timetable2db timetable-page*.csv timetable.sqlite
+
+The resulting database contains the following tables:
+
+         +---------------+      +----------+
+         | line_stations |      | lines    |
+         |---------------|      |----------|
+         | id            |  +-->| id       |
+         | line_id       |--+   | name     |
+     +---| station_id    |      +----------+
+     |   +---------------+
+     |
+     |
+     |   +---------------+       +------------+      +----------+
+     |   | stations      |       | stops      |      | services |
+     |   |---------------|       |------------|      |----------|
+     +-->| id            |<------| station_id |  +-->| id       |<------+
+         | name          |       | service_id |--+   | number   |       |
+         | latitude      |       | time       |      | inbound  |       |
+         | longitude     |       +------------+      +----------+       |
+         | address       |                                              |
+         | city          |                           +--------------+   |
+         | postcode      |                           | service_days |   |
+         | phone         |                           |--------------|   |
+         +---------------+                           | service_id   |---+
+                                                     | day          |
+                                                     +--------------+
 
 Some notes:
 
@@ -104,5 +123,5 @@ Stops after the given stop for the given service:
     FROM stops
     WHERE service_id = 74
     ORDER BY time;
-    
-    
+
+
