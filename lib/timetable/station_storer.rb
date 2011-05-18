@@ -41,10 +41,7 @@ class StationStorer
   end
 
   def add_stop(station, details)
-    station_id = id_of_station(station)
-    if station_id.nil?
-      station_id = add_station(station)
-    end
+    station_id = find_or_create_station(station)
 
     puts "add stop: #{station_id}, #{@services[details[:service]]}, #{details[:time]}"
     # The OR REPLACE clause handles the multiple entries for differing arrival and departure
@@ -58,6 +55,79 @@ class StationStorer
     @day_partitioner.boundaries << index - 1
   end
 
+protected
+
+	def find_or_create_station(station)
+    station_id = id_of_station(station)
+
+    if station_id.nil?
+      # Create the station
+      station_id = add_station(station)
+    end
+
+    # Ensure the station is associated with the line
+    ensure_station_is_associated_with_line(station_id)
+
+    station_id
+	end
+
+  def id_of_station(station)
+    db.get_first_value("SELECT id FROM stations WHERE name = ?", station)
+  end
+
+  def id_of_line
+    @id_of_line ||= db.get_first_value("SELECT id FROM lines WHERE name = ?", @line)
+    if @id_of_line.nil?
+      puts "add line: #{@line}"
+      insert_line = db.prepare "INSERT INTO lines (name) VALUES (?)"
+      insert_line.execute @line
+      @id_of_line = db.last_insert_row_id
+      # insert_line.finish
+    end
+    @id_of_line
+  end
+
+  def station_is_associated_with_line?(station_id)
+    line_station_id = db.get_first_value(
+      "SELECT id FROM line_stations WHERE line_id = ? AND station_id = ?", id_of_line, station_id
+    )
+    !line_station_id.nil?
+  end
+
+  def ensure_station_is_associated_with_line(station_id)
+    unless station_is_associated_with_line?(station_id)
+      insert_line_station = db.prepare "INSERT INTO line_stations (line_id, station_id) VALUES (?,?)"
+      insert_line_station.execute id_of_line, station_id
+    end
+  end
+
+  def geocode_station(station)
+    address = "#{station} Station, VIC, Australia"
+    response = Net::HTTP.get_response(
+      URI.parse("http://maps.googleapis.com/maps/api/geocode/json?address=#{CGI.escape(address)}&sensor=false&region=au")
+    )
+    data = JSON.parse(response.body)
+
+    lat, lng, address = nil
+    if data["status"] == "OK"
+      result = data["results"].first
+      lat = result["geometry"]["location"]["lat"]
+      lng = result["geometry"]["location"]["lng"]
+      address = result["formatted_address"]
+    end
+
+    return [lat, lng, address]
+  end
+
+  def add_station(station)
+    puts "add station: #{station}"
+    @insert_station ||= db.prepare "INSERT INTO stations (name) VALUES (?)"
+    @insert_station.execute(station)
+    db.last_insert_row_id # Return the id of the inserted station
+  end
+
+public
+
   def create_or_clear_tables!
     db.execute_batch <<-SQL
       CREATE TABLE IF NOT EXISTS lines (
@@ -67,7 +137,6 @@ class StationStorer
 
       CREATE TABLE IF NOT EXISTS stations (
         id integer NOT NULL PRIMARY KEY,
-        line_id integer NOT NULL,
         name varchar(255) UNIQUE NOT NULL,
         latitude double,
         longitude double,
@@ -75,6 +144,12 @@ class StationStorer
         city varchar(255),
         postcode varchar(255),
         phone varchar(12)
+      );
+
+      CREATE TABLE IF NOT EXISTS line_stations (
+        id integer NOT NULL PRIMARY KEY,
+        line_id integer NOT NULL,
+        station_id integer NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS services (
@@ -99,52 +174,10 @@ class StationStorer
       DELETE FROM service_days;
       DELETE FROM stops;
       DELETE FROM services;
+      DELETE FROM line_stations;
       DELETE FROM stations;
       DELETE FROM lines;
     SQL
-  end
-
-protected
-
-  def id_of_station(station)
-    db.get_first_value("SELECT id FROM stations WHERE name = ?", station)
-  end
-
-  def id_of_line
-    @id_of_line ||= db.get_first_value("SELECT id FROM lines WHERE name = ?", @line)
-    unless @id_of_line
-      puts "add line: #{@line}"
-      insert_line = db.prepare "INSERT INTO lines (name) VALUES (?)"
-      insert_line.execute @line
-      @id_of_line = db.last_insert_row_id
-      # insert_line.finish
-    end
-    @id_of_line
-  end
-
-  def geocode_station(station)
-    address = "#{station} Station, VIC, Australia"
-    response = Net::HTTP.get_response(
-      URI.parse("http://maps.googleapis.com/maps/api/geocode/json?address=#{CGI.escape(address)}&sensor=false&region=au")
-    )
-    data = JSON.parse(response.body)
-
-    lat, lng, address = nil
-    if data["status"] == "OK"
-      result = data["results"].first
-      lat = result["geometry"]["location"]["lat"]
-      lng = result["geometry"]["location"]["lng"]
-      address = result["formatted_address"]
-    end
-
-    return [lat, lng, address]
-  end
-
-  def add_station(station)
-    puts "add station: #{station}"
-    @insert_station ||= db.prepare "INSERT INTO stations (line_id, name) VALUES (?,?)"
-    @insert_station.execute(id_of_line, station)
-    db.last_insert_row_id # Return the id of the inserted station
   end
 
 end
