@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+# vi: set fileencoding=utf-8 :
+
+require 'pathname'
+require 'csv'
+require 'optparse'
+require 'sqlite3'
+require 'sequel'
+
+$LOAD_PATH.unshift Pathname(__FILE__).dirname.parent + 'lib'
+
+USAGE = "Usage: timetable2db [timetable.csv, ...] timetable.sqlite"
+
+options = { }
+output = '.'
+OptionParser.new do |o|
+  o.banner = USAGE
+
+  o.separator ""
+  o.separator "Loads hand entered CSV into an SQLite database"
+  o.separator "Initialise an empty database by running the migrations"
+  o.separator ""
+
+  o.on_tail("-h", "--help", "Show this message") do
+    puts o
+    exit
+  end
+end.parse!
+
+if ARGV.size < 2
+  $stderr.puts USAGE
+  exit 2
+end
+
+DB = Sequel.sqlite ARGV.pop
+Sequel::Model.db = DB
+
+require 'timetable/importer' # Have to do this after setting Sequel::Model.db
+
+ARGV.each do |csv_path|
+  # Read the entire thing into an array of arrays
+  data = CSV.read(csv_path, :encoding => "utf-8")
+  
+  importer = Timetable::Importer.new
+  puts "Importing #{File.basename csv_path}"
+  importer.import(data)
+end
