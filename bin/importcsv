@@ -32,7 +32,7 @@ if ARGV.size < 2
   exit 2
 end
 
-DB = Sequel.sqlite ARGV.pop
+DB = Sequel.sqlite ARGV.pop, :integer_booleans => true, :use_timestamp_timezones => false
 Sequel::Model.db = DB
 
 require 'timetable/importer' # Have to do this after setting Sequel::Model.db
