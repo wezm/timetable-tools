@@ -24,8 +24,8 @@ class StationStorer
   def add_service(index, service)
     puts "add service: #{index} => #{service} (#{direction})"
 
-    @insert_service ||= db.prepare "INSERT INTO services (number, inbound) VALUES (?,?)"
-    @insert_service.execute(service, direction == 'in' ? 1 : 0)
+    @insert_service ||= db.prepare "INSERT INTO services (line_id, number, inbound) VALUES (?,?,?)"
+    @insert_service.execute(id_of_line, service, direction == 'in' ? 1 : 0)
     service_id = db.last_insert_row_id
 
     @insert_service_day ||= db.prepare "INSERT INTO service_days (service_id, day) VALUES (?,?)"
@@ -57,7 +57,7 @@ class StationStorer
 
 protected
 
-	def find_or_create_station(station)
+  def find_or_create_station(station)
     station_id = id_of_station(station)
 
     if station_id.nil?
@@ -69,7 +69,7 @@ protected
     ensure_station_is_associated_with_line(station_id)
 
     station_id
-	end
+  end
 
   def id_of_station(station)
     db.get_first_value("SELECT id FROM stations WHERE name = ?", station)
@@ -89,7 +89,7 @@ protected
 
   def station_is_associated_with_line?(station_id)
     line_station_id = db.get_first_value(
-      "SELECT id FROM line_stations WHERE line_id = ? AND station_id = ?", id_of_line, station_id
+      "SELECT line_id FROM line_stations WHERE line_id = ? AND station_id = ?", id_of_line, station_id
     )
     !line_station_id.nil?
   end
@@ -147,13 +147,14 @@ public
       );
 
       CREATE TABLE IF NOT EXISTS line_stations (
-        id integer NOT NULL PRIMARY KEY,
         line_id integer NOT NULL,
-        station_id integer NOT NULL
+        station_id integer NOT NULL,
+        PRIMARY KEY(line_id, station_id)
       );
 
       CREATE TABLE IF NOT EXISTS services (
         id integer NOT NULL PRIMARY KEY,
+        line_id integer NOT NULL,
         number integer NOT NULL,
         inbound boolean NOT NULL
       );
@@ -177,6 +178,10 @@ public
       DELETE FROM line_stations;
       DELETE FROM stations;
       DELETE FROM lines;
+
+      CREATE INDEX IF NOT EXISTS idx_line_name ON lines (name);
+      CREATE INDEX IF NOT EXISTS idx_station_name on stations (name);
+      CREATE INDEX IF NOT EXISTS idx_service_line_id on services (line_id);
     SQL
   end
 
