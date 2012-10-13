@@ -62,7 +62,19 @@ module Timetable
     end
 
     def encode_days(days_string)
-      0
+      days = %w[MON TUE WED THU FRI SAT SUN]
+      if days_string.include?('-')
+        start_day, end_day = days_string.upcase.split('-')
+        days.index(start_day)..days.index(end_day)
+      elsif days_string.include?(',')
+        days_string.upcase.split(',').map do |day|
+          days.index day
+        end
+      else
+        [days.index(days_string.upcase)]
+      end.inject(0) do |memo, day|
+        memo | (1 << day)
+      end
     end
 
     def create_stops!(stops)
