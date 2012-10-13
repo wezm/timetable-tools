@@ -56,6 +56,8 @@ module Timetable
           :peak => enum.next == 'Y'
         )
 
+        puts "Importing service #{service.number}"
+
         # Import the stops on the service
         create_stops_on_service! service, enum
       end
