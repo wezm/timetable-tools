@@ -9,7 +9,7 @@ require 'sequel'
 
 $LOAD_PATH.unshift Pathname(__FILE__).dirname.parent + 'lib'
 
-USAGE = "Usage: timetable2db [timetable.csv, ...] timetable.sqlite"
+USAGE = "Usage: importcsv [timetable.csv, ...] timetable.sqlite"
 
 options = { }
 output = '.'
