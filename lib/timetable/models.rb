@@ -23,6 +23,8 @@ module Timetable
   class Service < Sequel::Model
     many_to_one :timetable
     one_to_many :stops
+    many_to_one :parent_service, :class => self
+    one_to_one :subordinate_service, :key => :parent_service_id, :class => self
   end
 
 end
